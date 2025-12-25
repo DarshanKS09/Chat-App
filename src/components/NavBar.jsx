@@ -1,65 +1,155 @@
-import React, { useState, useContext, createContext } from "react";
-import { dataContext } from "./context/ChatAppContext";
-const Navbar = ({view,setView,create,setCreate}) => {
-  const menuitems = [
-    { menu: "AllUsers", link: "/" },
-    { menu: "CHAT", link: "/" },
-    { menu: "CONTACT", link: "/" },
-    { menu: "SETTING", link: "/" },
-    { menu: "FAQ's", link: "/" },
-    { menu: "TERMS & CONDITIONS", link: "/" }
-  ];
-  console.log(view);
-  const {fetchData} = useContext(dataContext);
-  const [name, setName] = useState("Create Account");
-  const { account, userName, connectWallet,disconnectWallet } = useContext(dataContext);
+import React, { useState } from "react";
+import { useWallet } from "./context/WalletContext";
+import ProfileModal from "./ProfileModal";
+import AddFriendModal from "./AddFriendModal";
+import { getProfile } from "../utils/profile";
 
- const handleButton = async () => {
-  setCreate(1);
-  if (!account) {
-    await connectWallet(); // ✅ Uses global context logic
-  } else {
-    console.log("Wallet already connected:", account);
-  }
-};
+const NavBar = () => {
+  const { isLoggedIn, loginWithMetaMask, logout, isLoading, account } =
+    useWallet();
+
+  const [showProfile, setShowProfile] = useState(false);
+  const [showAddFriend, setShowAddFriend] = useState(false);
+
+  const profile = account ? getProfile(account) : null;
+  const hasProfile = profile && profile.name;
 
   return (
-    <nav className="w-full bg-[#1e2a38] text-white px-4 py-3 shadow-md">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-y-3">
-        <div className="flex items-center space-x-3">
-          <img
-            src="images/Straw Hat Pirates.jpeg"
-            alt="logo"
-            className="h-12 w-12 rounded-full object-cover"
-          />
-          <span className="text-orange-400 font-bold hidden sm:inline">Chat App</span>
-        </div>
-        <div className="flex flex-wrap justify-center gap-4 text-sm">
-          {menuitems.map((el, i) => (
-            <div
-              key={i}
-              onClick={() => setView(i)}
-              className={`cursor-pointer transition-all duration-200 px-3 py-1 ${
-                view === i
-                  ? "text-orange-500 border-b-2 border-orange-500"
-                  : "hover:text-orange-400"
-              }`}
-            >
-              {el.menu}
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center">
+    <>
+      <nav style={styles.nav}>
+        <h2 style={styles.logo}>Chat DApp</h2>
+
+        {!isLoggedIn ? (
           <button
-            onClick={handleButton}
-            className="bg-gray-700 text-orange-400 hover:text-orange-600 text-xs px-4 py-2 rounded-md"
+            onClick={loginWithMetaMask}
+            disabled={isLoading}
+            style={styles.login}
           >
-            {account ? userName : name}
+            {isLoading ? "Signing..." : "Login with MetaMask"}
           </button>
-        </div>
-      </div>
-    </nav>
+        ) : (
+          <div style={styles.right}>
+            {/* PROFILE GREETING */}
+            {hasProfile ? (
+              <div
+                style={styles.profileGreeting}
+                onClick={() => setShowProfile(true)}
+                title="Edit Profile"
+              >
+                {profile.avatar && (
+                  <img
+                    src={profile.avatar}
+                    alt="profile"
+                    style={styles.avatar}
+                  />
+                )}
+                <span style={styles.greetingText}>
+                  Hi {profile.name}
+                </span>
+              </div>
+            ) : (
+              <button
+                style={styles.btn}
+                onClick={() => setShowProfile(true)}
+              >
+                Add Profile
+              </button>
+            )}
+
+            {/* ADD FRIEND ONLY AFTER PROFILE */}
+            {hasProfile && (
+              <button
+                style={styles.btn}
+                onClick={() => setShowAddFriend(true)}
+              >
+                Add Friend
+              </button>
+            )}
+
+            <button onClick={logout} style={styles.logout}>
+              Logout
+            </button>
+          </div>
+        )}
+      </nav>
+
+      {showProfile && (
+        <ProfileModal onClose={() => setShowProfile(false)} />
+      )}
+
+      {showAddFriend && (
+        <AddFriendModal
+          onClose={() => setShowAddFriend(false)}
+          onAdded={() => {}}
+        />
+      )}
+    </>
   );
 };
 
-export default Navbar;
+const styles = {
+  nav: {
+    height: 70,
+    background: "#111",
+    color: "#fff",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "0 25px",
+  },
+  logo: {
+    margin: 0,
+  },
+  right: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  profileGreeting: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    background: "#1f1f1f",
+    padding: "6px 10px",
+    borderRadius: 20,
+    cursor: "pointer",
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: "50%",
+    objectFit: "cover",
+  },
+  greetingText: {
+    fontSize: 14,
+    whiteSpace: "nowrap",
+  },
+  btn: {
+    padding: "8px 14px",
+    background: "#4caf50",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  login: {
+    padding: "10px 16px",
+    background: "#f6851b",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+  logout: {
+    padding: "8px 14px",
+    background: "#ff4d4d",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    color: "#fff",
+    fontWeight: "bold",
+  },
+};
+
+export default NavBar;

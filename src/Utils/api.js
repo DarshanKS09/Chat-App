@@ -1,75 +1,76 @@
-
 import { ethers } from "ethers";
-import Web3Modal from "web3modal";
-import { ChatABI, ChatAppAddress } from "../components/context/Constants";
+import ChatApp from "./ChatApp.json";
 
- export const ConnectWallet = async () => {
-  if (!window.ethereum) {
-    alert("Please install MetaMask");
-    return null;
-  }
+// 🔴 REPLACE WITH YOUR DEPLOYED CONTRACT ADDRESS
+const CONTRACT_ADDRESS = "0x8bc031B8597dbf6137Ede4BCDC7D573Bf8a5e2E6";
 
-  const accounts = await window.ethereum.request({
-    method: "eth_requestAccounts",
-  });
 
-  // ✅ If already connected, just return the first account
-  if (!accounts || accounts.length === 0) {
-    console.warn("🟡 No accounts found. Possibly already connected.");
-    return null;
-  }
 
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
-  const signer = provider.getSigner();
+/* ===============================
+   CONNECT WALLET
+================================ */
+export const ConnectWallet = async () => {
+  try {
+    if (!window.ethereum) {
+      alert("MetaMask not installed");
+      return null;
+    }
 
-  return {
-    provider,
-    signer,
-    userAddress: accounts[0],
-  };
-};
- export const checkIfWalletConnected = async () => {
-  if (!window.ethereum) return null;
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    });
 
-  const accounts = await window.ethereum.request({
-    method: "eth_accounts",
-  });
-
-  if (accounts.length > 0) {
-    return {
-      userAddress: accounts[0],
-    };
-  } else {
+    return { userAddress: accounts[0] };
+  } catch (error) {
+    console.error("ConnectWallet error:", error);
     return null;
   }
 };
 
+/* ===============================
+   CHECK WALLET CONNECTION
+================================ */
+export const checkIfWalletConnected = async () => {
+  try {
+    if (!window.ethereum) return null;
 
- export const fetchContract=(signerOrProvider)=>{
-   return  new ethers.Contract(ChatAppAddress,ChatABI,signerOrProvider);
+    const accounts = await window.ethereum.request({
+      method: "eth_accounts",
+    });
 
- }
-
- export const connectingWithContract = async() =>{
-    try{
-        const web3modal = new Web3Modal();
-        const connection = await web3modal.connect();
-        const provider = new ethers.providers.Web3Provider(connection);
-        const signer = provider.getSigner();
-        const contract = fetchContract(signer);
-
-        return contract; 
+    if (accounts.length > 0) {
+      return { userAddress: accounts[0] };
     }
-    catch(error){
-        console.log("Can't connect");
+
+    return null;
+  } catch (error) {
+    console.error("checkIfWalletConnected error:", error);
+    return null;
+  }
+};
+
+/* ===============================
+   CONNECT CONTRACT
+================================ */
+export const connectingWithContract = async () => {
+  try {
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return null;
     }
- }
 
- export const getTime = (timestamp)=>{
-         const newtime = new Date(timestamp.toNumber()*1000);
-         const realtime = newtime.getHours() + "/" + newtime.getMinutes() + "/" +  newtime.getSeconds() +
-                          "Date :" + newtime.getDate() + "/" + (newtime.getMonth()+1) + "/" + newtime.getFullYear() ; 
-         return realtime;    
- }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
 
- 
+    const contract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      ChatApp.abi,
+      signer
+    );
+
+    return contract;
+  } catch (error) {
+    console.error("connectingWithContract error:", error);
+    return null;
+  }
+};
